@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { userService } from '../services/user.service'
+import { DatePicker } from '../components/DatePicker'
 
 function Register() {
     const navigate = useNavigate()
     const { signUp } = useAuth()
     const [formData, setFormData] = useState({
+        nombre: '',
+        apellido: '',
         email: '',
+        fechaNacimiento: '',
         password: '',
         confirmPassword: '',
     })
@@ -18,6 +23,27 @@ function Register() {
             ...formData,
             [e.target.name]: e.target.value,
         })
+    }
+
+    const getErrorMessage = (error: any): string => {
+        const errorCode = error.code || ''
+
+        switch (errorCode) {
+            case 'auth/email-already-in-use':
+                return 'Este email ya está registrado. Intenta iniciar sesión'
+            case 'auth/invalid-email':
+                return 'El formato del email no es válido'
+            case 'auth/weak-password':
+                return 'La contraseña es muy débil. Usa al menos 6 caracteres'
+            case 'auth/network-request-failed':
+                return 'Error de conexión. Verifica tu internet'
+            case 'auth/too-many-requests':
+                return 'Demasiados intentos. Intenta más tarde'
+            default:
+                return (
+                    error.message || 'Error al registrarse. Intenta nuevamente'
+                )
+        }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -37,10 +63,23 @@ function Register() {
         setLoading(true)
 
         try {
+            // 1. Create user in Firebase
             await signUp(formData.email, formData.password)
+
+            // 2. Create user in MongoDB
+            const mongoUser = await userService.create({
+                nombre: formData.nombre,
+                apellido: formData.apellido,
+                email: formData.email,
+                fechaNacimiento: formData.fechaNacimiento,
+            })
+
+            // 3. Store MongoDB user ID in localStorage
+            localStorage.setItem('mongoUserId', mongoUser._id)
+
             navigate('/dashboard')
         } catch (err: any) {
-            setError(err.message || 'Error al registrarse')
+            setError(getErrorMessage(err))
         } finally {
             setLoading(false)
         }
@@ -95,6 +134,56 @@ function Register() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Nombre
+                            </label>
+                            <input
+                                type="text"
+                                name="nombre"
+                                value={formData.nombre}
+                                onChange={handleChange}
+                                required
+                                disabled={loading}
+                                placeholder="Tu nombre"
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-4 focus:ring-pink-100 outline-none transition-all disabled:bg-gray-100"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Apellido
+                            </label>
+                            <input
+                                type="text"
+                                name="apellido"
+                                value={formData.apellido}
+                                onChange={handleChange}
+                                required
+                                disabled={loading}
+                                placeholder="Tu apellido"
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-4 focus:ring-pink-100 outline-none transition-all disabled:bg-gray-100"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Fecha de Nacimiento
+                            </label>
+                            <DatePicker
+                                value={formData.fechaNacimiento}
+                                onChange={(date) =>
+                                    setFormData({
+                                        ...formData,
+                                        fechaNacimiento: date,
+                                    })
+                                }
+                                disabled={loading}
+                                placeholder="Selecciona tu fecha de nacimiento"
+                                maxDate={new Date()}
+                            />
+                        </div>
+
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Correo Electrónico

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { userService } from '../services/user.service'
 
 function Login() {
     const navigate = useNavigate()
@@ -9,6 +10,27 @@ function Login() {
     const [password, setPassword] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
+
+    const getErrorMessage = (error: any): string => {
+        const errorCode = error.code || ''
+
+        switch (errorCode) {
+            case 'auth/invalid-credential':
+            case 'auth/wrong-password':
+            case 'auth/user-not-found':
+                return 'Usuario o contraseña incorrectos'
+            case 'auth/invalid-email':
+                return 'El formato del email no es válido'
+            case 'auth/user-disabled':
+                return 'Esta cuenta ha sido deshabilitada'
+            case 'auth/too-many-requests':
+                return 'Demasiados intentos fallidos. Intenta más tarde'
+            case 'auth/network-request-failed':
+                return 'Error de conexión. Verifica tu internet'
+            default:
+                return 'Error al iniciar sesión. Intenta nuevamente'
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -19,7 +41,7 @@ function Login() {
             await signIn(email, password)
             navigate('/dashboard')
         } catch (err: any) {
-            setError(err.message || 'Error al iniciar sesión')
+            setError(getErrorMessage(err))
         } finally {
             setLoading(false)
         }
@@ -30,10 +52,44 @@ function Login() {
         setLoading(true)
 
         try {
-            await signInWithGoogle()
-            navigate('/dashboard')
+            const user = await signInWithGoogle()
+
+            // Check if user has email
+            if (!user.email) {
+                setError('No se pudo obtener el email del usuario')
+                return
+            }
+
+            // Check if user exists in MongoDB
+            try {
+                const users = await userService.getAll()
+                const mongoUser = users.find((u) => u.email === user.email)
+
+                if (mongoUser) {
+                    // User exists, store ID and go to dashboard
+                    localStorage.setItem('mongoUserId', mongoUser._id)
+                    navigate('/dashboard')
+                } else {
+                    // New user, redirect to complete profile
+                    navigate('/complete-profile', {
+                        state: {
+                            email: user.email,
+                            nombre:
+                                user.displayName || user.email.split('@')[0],
+                        },
+                    })
+                }
+            } catch (err) {
+                // If can't fetch users, assume new user
+                navigate('/complete-profile', {
+                    state: {
+                        email: user.email,
+                        nombre: user.displayName || user.email.split('@')[0],
+                    },
+                })
+            }
         } catch (err: any) {
-            setError(err.message || 'Error al iniciar sesión con Google')
+            setError(getErrorMessage(err))
         } finally {
             setLoading(false)
         }
@@ -138,7 +194,7 @@ function Login() {
                     <button
                         onClick={handleGoogleSignIn}
                         disabled={loading}
-                        className="w-full py-3 px-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-700 hover:border-purple-500 hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        className="w-full py-3 px-4 bg-white border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-blue-50 hover:border-blue-500 hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-sm"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24">
                             <path
