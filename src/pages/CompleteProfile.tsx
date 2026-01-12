@@ -16,6 +16,7 @@ function CompleteProfile() {
     const [formData, setFormData] = useState({
         apellido: '',
         fechaNacimiento: '',
+        telefono: '',
     })
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
@@ -54,6 +55,7 @@ function CompleteProfile() {
                 apellido: formData.apellido,
                 email,
                 fechaNacimiento: formData.fechaNacimiento,
+                telefono: formData.telefono || undefined,
             })
 
             // Store MongoDB user ID
@@ -124,6 +126,27 @@ function CompleteProfile() {
                             placeholder="Selecciona tu fecha de nacimiento"
                             maxDate={new Date()}
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Teléfono (WhatsApp){' '}
+                            <span className="text-gray-400 text-xs">
+                                (Opcional)
+                            </span>
+                        </label>
+                        <input
+                            type="tel"
+                            name="telefono"
+                            value={formData.telefono}
+                            onChange={handleChange}
+                            disabled={loading}
+                            placeholder="+5491112345678"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition-all disabled:bg-gray-100"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            📱 Para recibir recordatorios de tus tratamientos
+                        </p>
                     </div>
 
                     <button

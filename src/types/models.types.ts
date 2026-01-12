@@ -6,6 +6,7 @@ export interface User {
     apellido: string
     email: string
     fechaNacimiento: string
+    telefono?: string // Número de WhatsApp en formato internacional
     tratamientos?: string[]
     createdAt?: string
     updatedAt?: string
@@ -50,6 +51,7 @@ export interface CreateUserDto {
     apellido: string
     email: string
     fechaNacimiento: string
+    telefono?: string // Opcional: número de WhatsApp
 }
 
 export interface CreatePastillaDto {

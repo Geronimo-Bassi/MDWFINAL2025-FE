@@ -12,6 +12,7 @@ function Register() {
         apellido: '',
         email: '',
         fechaNacimiento: '',
+        telefono: '',
         password: '',
         confirmPassword: '',
     })
@@ -72,6 +73,7 @@ function Register() {
                 apellido: formData.apellido,
                 email: formData.email,
                 fechaNacimiento: formData.fechaNacimiento,
+                telefono: formData.telefono || undefined,
             })
 
             // 3. Store MongoDB user ID in localStorage
@@ -198,6 +200,27 @@ function Register() {
                                 placeholder="nombre@ejemplo.com"
                                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-4 focus:ring-pink-100 outline-none transition-all disabled:bg-gray-100"
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Teléfono (WhatsApp){' '}
+                                <span className="text-gray-400 text-xs">
+                                    (Opcional)
+                                </span>
+                            </label>
+                            <input
+                                type="tel"
+                                name="telefono"
+                                value={formData.telefono}
+                                onChange={handleChange}
+                                disabled={loading}
+                                placeholder="+5491112345678"
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-4 focus:ring-pink-100 outline-none transition-all disabled:bg-gray-100"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                📱 Formato internacional: +[código país][número]
+                            </p>
                         </div>
 
                         <div>

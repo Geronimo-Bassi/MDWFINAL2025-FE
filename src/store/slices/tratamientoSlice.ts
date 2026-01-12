@@ -2,13 +2,11 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { tratamientoService } from '../../services/tratamiento.service'
 import type { Tratamiento } from '../../types/models.types'
 
-// ============================================
-// ESTADO INICIAL
-// ============================================
+
 interface TratamientoState {
-    tratamientos: Tratamiento[] // Los datos
-    loading: boolean // ¿Está cargando?
-    error: string | null // Mensaje de error (si hay)
+    tratamientos: Tratamiento[] 
+    loading: boolean 
+    error: string | null 
 }
 
 const initialState: TratamientoState = {
@@ -17,9 +15,6 @@ const initialState: TratamientoState = {
     error: null,
 }
 
-// ============================================
-// THUNKS ASÍNCRONOS (Llamadas a la API)
-// ============================================
 
 // Obtener tratamientos por usuario
 export const fetchTratamientosByUsuario = createAsyncThunk(
@@ -57,21 +52,17 @@ export const cancelTratamiento = createAsyncThunk(
     }
 )
 
-// ============================================
-// SLICE
-// ============================================
+
 const tratamientoSlice = createSlice({
     name: 'tratamientos',
     initialState,
     reducers: {
-        // Aquí podrías agregar acciones síncronas si las necesitas
-        // Por ejemplo: limpiar el error manualmente
         clearError: (state) => {
             state.error = null
         },
     },
     extraReducers: (builder) => {
-        // ========== FETCH TRATAMIENTOS ==========
+        
         builder
             .addCase(fetchTratamientosByUsuario.pending, (state) => {
                 state.loading = true
@@ -87,7 +78,7 @@ const tratamientoSlice = createSlice({
                     action.error.message || 'Error al cargar tratamientos'
             })
 
-        // ========== CREATE TRATAMIENTO ==========
+        
         builder
             .addCase(createTratamiento.pending, (state) => {
                 state.loading = true
@@ -103,7 +94,7 @@ const tratamientoSlice = createSlice({
                     action.error.message || 'Error al crear tratamiento'
             })
 
-        // ========== UPDATE TRATAMIENTO ==========
+        
         builder
             .addCase(updateTratamiento.pending, (state) => {
                 state.loading = true
@@ -124,7 +115,7 @@ const tratamientoSlice = createSlice({
                     action.error.message || 'Error al actualizar tratamiento'
             })
 
-        // ========== CANCEL TRATAMIENTO ==========
+        
         builder
             .addCase(cancelTratamiento.pending, (state) => {
                 state.loading = true

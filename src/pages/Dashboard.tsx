@@ -393,23 +393,16 @@ function Dashboard() {
     }
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <div className="flex min-h-screen">
             {/* MENÚ LATERAL - Izquierda */}
             <Sidebar onSignOut={handleSignOut} />
 
             {/* ÁREA PRINCIPAL - Derecha */}
-            <div
-                style={{
-                    flex: 1,
-                    padding: '40px',
-                    background: '#fafafa',
-                    minHeight: '100vh',
-                }}
-            >
-                {/* Contenedor con dos columnas */}
-                <div className="flex gap-6">
+            <div className="flex-1 p-4 md:p-8 lg:p-10 bg-gray-50 min-h-screen">
+                {/* Contenedor responsive: 1 columna en móvil, 2 columnas en desktop */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Columna Izquierda: Formulario */}
-                    <div className="flex-1">
+                    <div>
                         <Card className="w-full">
                             <CardHeader>
                                 <CardTitle>Crear Tratamiento</CardTitle>
@@ -673,7 +666,7 @@ function Dashboard() {
                     </div>
 
                     {/* Columna Derecha: Tratamientos Activos */}
-                    <div className="flex-1">
+                    <div>
                         <Card className="w-full">
                             <CardHeader>
                                 <CardTitle>Tratamientos Activos</CardTitle>
