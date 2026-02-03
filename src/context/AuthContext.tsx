@@ -27,9 +27,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false)
         })
 
-        // Cleanup subscription
-        return unsubscribe
-    }, [])
+        // Refresh automático de token cada 50 minutos (antes de que expire en 1 hora)
+        let tokenRefreshInterval: number | null = null
+
+        if (user) {
+            tokenRefreshInterval = setInterval(async () => {
+                try {
+                    await user.getIdToken(true) // true = force refresh
+                    console.log('🔄 Token refrescado automáticamente')
+                } catch (error) {
+                    console.error('❌ Error refrescando token:', error)
+                }
+            }, 50 * 60 * 1000) // 50 minutos
+        }
+
+        // Cleanup subscription and interval
+        return () => {
+            unsubscribe()
+            if (tokenRefreshInterval) {
+                clearInterval(tokenRefreshInterval)
+            }
+        }
+    }, [user])
 
     const value: AuthContextType = {
         user,

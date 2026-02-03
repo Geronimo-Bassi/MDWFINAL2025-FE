@@ -15,30 +15,38 @@ const axiosInstance = axios.create({
 
 // Interceptor de request - se ejecuta antes de cada petición
 axiosInstance.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        // Aquí puedes agregar tokens de autenticación si los necesitas
-        // const token = localStorage.getItem('token');
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`;
-        // }
+    async (config: InternalAxiosRequestConfig) => {
+        // Obtener token de Firebase si el usuario está autenticado
+        const { auth } = await import('../config/firebase.config')
+        const user = auth.currentUser
 
-        console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`)
+        if (user) {
+            try {
+                const token = await user.getIdToken()
+                config.headers.Authorization = `Bearer ${token}`
+                console.log(' Token agregado al request')
+            } catch (error) {
+                console.error(' Error obteniendo token:', error)
+            }
+        }
+
+        console.log(` Request: ${config.method?.toUpperCase()} ${config.url}`)
         return config
     },
     (error: AxiosError) => {
-        console.error('❌ Request Error:', error)
+        console.error(' Request Error:', error)
         return Promise.reject(error)
-    }
+    },
 )
 
 // Interceptor de response - se ejecuta después de cada respuesta
 axiosInstance.interceptors.response.use(
     (response) => {
         console.log(
-            `✅ Response: ${response.config.method?.toUpperCase()} ${
+            ` Response: ${response.config.method?.toUpperCase()} ${
                 response.config.url
             }`,
-            response.status
+            response.status,
         )
         return response
     },
@@ -46,7 +54,7 @@ axiosInstance.interceptors.response.use(
         // Manejo global de errores
         if (error.response) {
             // El servidor respondió con un código de error
-            console.error('❌ Response Error:', {
+            console.error(' Response Error:', {
                 status: error.response.status,
                 data: error.response.data,
                 url: error.config?.url,
@@ -81,10 +89,19 @@ axiosInstance.interceptors.response.use(
             // Puedes manejar errores específicos aquí
             switch (error.response.status) {
                 case 400:
-                    console.error('❌ Validación fallida:', errorMessage)
+                    console.error(' Validación fallida:', errorMessage)
                     break
                 case 401:
-                    console.error('No autorizado - Redirigir a login')
+                    console.error(' No autorizado - Token inválido o expirado')
+                    // Limpiar sesión y redirigir a login
+                    import('../services/auth.service').then(
+                        ({ authService }) => {
+                            authService.signOut()
+                        },
+                    )
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/login'
+                    }
                     break
                 case 404:
                     console.error('Recurso no encontrado')
@@ -97,17 +114,17 @@ axiosInstance.interceptors.response.use(
             return Promise.reject(enhancedError)
         } else if (error.request) {
             // La petición se hizo pero no hubo respuesta
-            console.error('❌ No response from server:', error.message)
+            console.error(' No response from server:', error.message)
             console.error(
-                'Verifica que el backend esté corriendo en http://localhost:3000'
+                'Verifica que el backend esté corriendo en http://localhost:3000',
             )
         } else {
             // Algo pasó al configurar la petición
-            console.error('❌ Error:', error.message)
+            console.error(' Error:', error.message)
         }
 
         return Promise.reject(error)
-    }
+    },
 )
 
 export default axiosInstance
