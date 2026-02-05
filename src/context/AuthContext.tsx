@@ -31,14 +31,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let tokenRefreshInterval: number | null = null
 
         if (user) {
-            tokenRefreshInterval = setInterval(async () => {
-                try {
-                    await user.getIdToken(true) // true = force refresh
-                    console.log('🔄 Token refrescado automáticamente')
-                } catch (error) {
-                    console.error('❌ Error refrescando token:', error)
-                }
-            }, 50 * 60 * 1000) // 50 minutos
+            tokenRefreshInterval = setInterval(
+                async () => {
+                    try {
+                        await user.getIdToken(true) // true = force refresh
+                        console.log(' Token refrescado automáticamente')
+                    } catch (error) {
+                        console.error(' Error refrescando token:', error)
+                    }
+                },
+                50 * 60 * 1000,
+            ) // 50 minutos
         }
 
         // Cleanup subscription and interval

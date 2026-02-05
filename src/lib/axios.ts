@@ -86,7 +86,7 @@ axiosInstance.interceptors.response.use(
             enhancedError.response = error.response
             enhancedError.status = error.response.status
 
-            // Puedes manejar errores específicos aquí
+            // manejar errores específicos aquí
             switch (error.response.status) {
                 case 400:
                     console.error(' Validación fallida:', errorMessage)
@@ -116,7 +116,7 @@ axiosInstance.interceptors.response.use(
             // La petición se hizo pero no hubo respuesta
             console.error(' No response from server:', error.message)
             console.error(
-                'Verifica que el backend esté corriendo en http://localhost:3000',
+                'Verificar si el backend está corriendo en http://localhost:3000',
             )
         } else {
             // Algo pasó al configurar la petición
