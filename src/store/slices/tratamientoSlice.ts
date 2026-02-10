@@ -2,11 +2,10 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { tratamientoService } from '../../services/tratamiento.service'
 import type { Tratamiento } from '../../types/models.types'
 
-
 interface TratamientoState {
-    tratamientos: Tratamiento[] 
-    loading: boolean 
-    error: string | null 
+    tratamientos: Tratamiento[]
+    loading: boolean
+    error: string | null
 }
 
 const initialState: TratamientoState = {
@@ -15,14 +14,22 @@ const initialState: TratamientoState = {
     error: null,
 }
 
-
 // Obtener tratamientos por usuario
 export const fetchTratamientosByUsuario = createAsyncThunk(
     'tratamientos/fetchByUsuario',
     async (usuarioId: string) => {
         const response = await tratamientoService.getByUsuario(usuarioId)
         return response
-    }
+    },
+)
+
+// Obtener TODOS los tratamientos por usuario (incluyendo inactivos)
+export const fetchAllTratamientosByUsuario = createAsyncThunk(
+    'tratamientos/fetchAllByUsuario',
+    async (usuarioId: string) => {
+        const response = await tratamientoService.getByUsuarioAll(usuarioId)
+        return response
+    },
 )
 
 // Crear tratamiento
@@ -31,7 +38,7 @@ export const createTratamiento = createAsyncThunk(
     async (data: any) => {
         const response = await tratamientoService.create(data)
         return response
-    }
+    },
 )
 
 // Actualizar tratamiento
@@ -40,7 +47,7 @@ export const updateTratamiento = createAsyncThunk(
     async ({ id, data }: { id: string; data: any }) => {
         const response = await tratamientoService.update(id, data)
         return response
-    }
+    },
 )
 
 // Cancelar tratamiento (cambiar estado)
@@ -49,9 +56,8 @@ export const cancelTratamiento = createAsyncThunk(
     async (id: string) => {
         const response = await tratamientoService.updateEstado(id, 'cancelado')
         return response
-    }
+    },
 )
-
 
 const tratamientoSlice = createSlice({
     name: 'tratamientos',
@@ -62,7 +68,6 @@ const tratamientoSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
-        
         builder
             .addCase(fetchTratamientosByUsuario.pending, (state) => {
                 state.loading = true
@@ -78,7 +83,28 @@ const tratamientoSlice = createSlice({
                     action.error.message || 'Error al cargar tratamientos'
             })
 
-        
+        // Reducers para fetchAllTratamientosByUsuario
+        builder
+            .addCase(fetchAllTratamientosByUsuario.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(
+                fetchAllTratamientosByUsuario.fulfilled,
+                (state, action) => {
+                    state.loading = false
+                    state.tratamientos = action.payload
+                },
+            )
+            .addCase(
+                fetchAllTratamientosByUsuario.rejected,
+                (state, action) => {
+                    state.loading = false
+                    state.error =
+                        action.error.message || 'Error al cargar tratamientos'
+                },
+            )
+
         builder
             .addCase(createTratamiento.pending, (state) => {
                 state.loading = true
@@ -94,7 +120,6 @@ const tratamientoSlice = createSlice({
                     action.error.message || 'Error al crear tratamiento'
             })
 
-        
         builder
             .addCase(updateTratamiento.pending, (state) => {
                 state.loading = true
@@ -103,7 +128,7 @@ const tratamientoSlice = createSlice({
             .addCase(updateTratamiento.fulfilled, (state, action) => {
                 state.loading = false
                 const index = state.tratamientos.findIndex(
-                    (t) => t._id === action.payload._id
+                    (t) => t._id === action.payload._id,
                 )
                 if (index !== -1) {
                     state.tratamientos[index] = action.payload
@@ -115,7 +140,6 @@ const tratamientoSlice = createSlice({
                     action.error.message || 'Error al actualizar tratamiento'
             })
 
-        
         builder
             .addCase(cancelTratamiento.pending, (state) => {
                 state.loading = true
@@ -125,7 +149,7 @@ const tratamientoSlice = createSlice({
                 state.loading = false
                 // Remover el tratamiento cancelado de la lista
                 state.tratamientos = state.tratamientos.filter(
-                    (t) => t._id !== action.payload._id
+                    (t) => t._id !== action.payload._id,
                 )
             })
             .addCase(cancelTratamiento.rejected, (state, action) => {

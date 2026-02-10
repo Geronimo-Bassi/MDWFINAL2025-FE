@@ -7,23 +7,30 @@ const BASE_PATH = '/api/tratamientos'
 export const tratamientoService = {
     // Obtener todos los tratamientos
     async getAll(): Promise<Tratamiento[]> {
-        const response = await axiosInstance.get<ApiResponse<Tratamiento[]>>(
-            BASE_PATH
-        )
+        const response =
+            await axiosInstance.get<ApiResponse<Tratamiento[]>>(BASE_PATH)
         return response.data.data
     },
 
     // Obtener un tratamiento por ID
     async getById(id: string): Promise<Tratamiento> {
         const response = await axiosInstance.get<ApiResponse<Tratamiento>>(
-            `${BASE_PATH}/${id}`
+            `${BASE_PATH}/${id}`,
         )
         return response.data.data
     },
     // Obtener tratamientos por usuario
     async getByUsuario(usuarioId: string): Promise<Tratamiento[]> {
         const response = await axiosInstance.get<ApiResponse<Tratamiento[]>>(
-            `${BASE_PATH}/usuario/${usuarioId}`
+            `${BASE_PATH}/usuario/${usuarioId}`,
+        )
+        return response.data.data
+    },
+
+    // Obtener TODOS los tratamientos por usuario (incluyendo inactivos y cancelados)
+    async getByUsuarioAll(usuarioId: string): Promise<Tratamiento[]> {
+        const response = await axiosInstance.get<ApiResponse<Tratamiento[]>>(
+            `${BASE_PATH}/usuario/${usuarioId}?estado=activo,finalizado,suspendido,cancelado`,
         )
         return response.data.data
     },
@@ -31,18 +38,18 @@ export const tratamientoService = {
     async create(data: CreateTratamientoDto): Promise<Tratamiento> {
         const response = await axiosInstance.post<ApiResponse<Tratamiento>>(
             BASE_PATH,
-            data
+            data,
         )
         return response.data.data
     },
 
     async update(
         id: string,
-        data: Partial<CreateTratamientoDto>
+        data: Partial<CreateTratamientoDto>,
     ): Promise<Tratamiento> {
         const response = await axiosInstance.put<ApiResponse<Tratamiento>>(
             `${BASE_PATH}/${id}`,
-            data
+            data,
         )
         return response.data.data
     },
@@ -51,7 +58,7 @@ export const tratamientoService = {
     async updateEstado(id: string, estado: string): Promise<Tratamiento> {
         const response = await axiosInstance.patch<ApiResponse<Tratamiento>>(
             `${BASE_PATH}/${id}/estado`,
-            { estado }
+            { estado },
         )
         return response.data.data
     },

@@ -29,6 +29,7 @@ export interface Horario {
 
 export interface Tratamiento {
     _id: string
+    nombre: string // Nombre del tratamiento
     usuario: string // ID del usuario
     pastilla: string | Pastilla // ID de la pastilla o pastilla poblada
     dosis: string
@@ -60,6 +61,7 @@ export interface CreatePastillaDto {
 }
 
 export interface CreateTratamientoDto {
+    nombre: string // Nombre del tratamiento
     usuarioId: string // ID del usuario (backend espera 'usuarioId')
     pastillaId: string // ID de la pastilla (backend espera 'pastillaId')
     dosis: string

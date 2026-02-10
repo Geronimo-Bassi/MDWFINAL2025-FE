@@ -14,7 +14,32 @@ export const userService = {
     // Obtener un usuario por ID
     async getById(id: string): Promise<User> {
         const response = await axiosInstance.get<ApiResponse<User>>(
-            `${BASE_PATH}/${id}`
+            `${BASE_PATH}/${id}`,
+        )
+        return response.data.data
+    },
+
+    // Obtener un usuario por email
+    async getByEmail(email: string): Promise<User> {
+        const response = await axiosInstance.get<ApiResponse<User>>(
+            `${BASE_PATH}/email/${email}`,
+        )
+        return response.data.data
+    },
+
+    // Obtener un usuario por Firebase UID
+    async getByFirebaseUid(firebaseUid: string): Promise<User> {
+        const response = await axiosInstance.get<ApiResponse<User>>(
+            `${BASE_PATH}/firebase/${firebaseUid}`,
+        )
+        return response.data.data
+    },
+
+    // Actualizar Firebase UID de un usuario existente
+    async updateFirebaseUid(email: string, firebaseUid: string): Promise<User> {
+        const response = await axiosInstance.patch<ApiResponse<User>>(
+            `${BASE_PATH}/firebase-uid`,
+            { email, firebaseUid },
         )
         return response.data.data
     },
@@ -23,7 +48,7 @@ export const userService = {
     async create(data: CreateUserDto): Promise<User> {
         const response = await axiosInstance.post<ApiResponse<User>>(
             BASE_PATH,
-            data
+            data,
         )
         return response.data.data
     },
@@ -32,7 +57,7 @@ export const userService = {
     async update(id: string, data: Partial<CreateUserDto>): Promise<User> {
         const response = await axiosInstance.put<ApiResponse<User>>(
             `${BASE_PATH}/${id}`,
-            data
+            data,
         )
         return response.data.data
     },
@@ -45,11 +70,11 @@ export const userService = {
     // Asignar tratamiento a usuario
     async assignTratamiento(
         userId: string,
-        tratamientoId: string
+        tratamientoId: string,
     ): Promise<User> {
         const response = await axiosInstance.post<ApiResponse<User>>(
             `${BASE_PATH}/${userId}/tratamientos`,
-            { tratamientoId }
+            { tratamientoId },
         )
         return response.data.data
     },

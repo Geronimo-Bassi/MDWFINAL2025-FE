@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import { pastillaService } from '../services/pastilla.service'
+import { tratamientoService } from '../services/tratamiento.service'
 import { userService } from '../services/user.service'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
@@ -65,6 +66,7 @@ import {
     ArrowRight,
     Edit2,
     Trash2,
+    Pause,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
@@ -87,6 +89,7 @@ function Dashboard() {
     const [selectedPastilla, setSelectedPastilla] = useState('')
     const [pastillas, setPastillas] = useState<Pastilla[]>([])
     const [loadingPastillas, setLoadingPastillas] = useState(true)
+    const [nombre, setNombre] = useState('')
     const [dosis, setDosis] = useState('')
     const [frecuencia, setFrecuencia] = useState('')
     const [isCreating, setIsCreating] = useState(false)
@@ -97,6 +100,7 @@ function Dashboard() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [editingTratamiento, setEditingTratamiento] =
         useState<Tratamiento | null>(null)
+    const [editNombre, setEditNombre] = useState('')
     const [editDosis, setEditDosis] = useState('')
     const [editFrecuencia, setEditFrecuencia] = useState('')
     const [editHoraInicio, setEditHoraInicio] = useState('08:00')
@@ -127,29 +131,18 @@ function Dashboard() {
             if (!user?.email) return
 
             try {
-                console.log(
-                    '🔍 Buscando usuario en MongoDB con email:',
-                    user.email
-                )
-                // Obtener todos los usuarios y buscar por email
                 const users = await userService.getAll()
-                console.log('📋 Total usuarios en BD:', users.length)
                 const foundUser = users.find((u) => u.email === user.email)
                 if (foundUser) {
-                    console.log('✅ Usuario encontrado en MongoDB:', foundUser)
-                    console.log('🆔 MongoDB _id:', foundUser._id)
                     setDbUser(foundUser)
                 } else {
                     console.error(
-                        '❌ Usuario no encontrado en la base de datos'
-                    )
-                    console.log(
-                        '📧 Emails en BD:',
-                        users.map((u) => u.email)
+                        'Usuario no encontrado en la base de datos:',
+                        user.email,
                     )
                 }
             } catch (error) {
-                console.error('Error al cargar usuario de la BD:', error)
+                console.error('Error crítico al cargar usuario:', error)
             }
         }
 
@@ -159,7 +152,6 @@ function Dashboard() {
     // Cargar tratamientos del usuario
     useEffect(() => {
         if (dbUser?._id) {
-            console.log('📋 Cargando tratamientos del usuario:', dbUser._id)
             dispatch(fetchTratamientosByUsuario(dbUser._id))
         }
     }, [dbUser?._id, dispatch])
@@ -181,8 +173,8 @@ function Dashboard() {
             horarios.push(
                 `${String(hora).padStart(2, '0')}:${String(minuto).padStart(
                     2,
-                    '0'
-                )}`
+                    '0',
+                )}`,
             )
         }
 
@@ -196,6 +188,14 @@ function Dashboard() {
 
     const handleCreateTratamiento = async () => {
         // Validaciones
+        if (!nombre.trim()) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Por favor ingresa el nombre del tratamiento',
+            })
+            return
+        }
         if (!selectedPastilla) {
             toast({
                 variant: 'destructive',
@@ -209,6 +209,16 @@ function Dashboard() {
                 variant: 'destructive',
                 title: 'Error',
                 description: 'Por favor ingresa la dosis',
+            })
+            return
+        }
+        // Validar que la dosis sea un número entero positivo
+        const dosisNum = parseInt(dosis.trim())
+        if (isNaN(dosisNum) || dosisNum <= 0 || !Number.isInteger(dosisNum)) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'La dosis debe ser un número entero positivo',
             })
             return
         }
@@ -245,14 +255,8 @@ function Dashboard() {
         try {
             setIsCreating(true)
 
-            console.log('📦 Datos del tratamiento a enviar:')
-            console.log('  - Usuario ID:', dbUser._id)
-            console.log('  - Pastilla ID:', selectedPastilla)
-            console.log('  - Dosis:', dosis.trim())
-            console.log('  - Frecuencia:', parseInt(frecuencia))
-            console.log('  - Hora Inicio:', horaInicio)
-
             const tratamientoData = {
+                nombre: nombre.trim(),
                 usuarioId: dbUser._id,
                 pastillaId: selectedPastilla,
                 dosis: dosis.trim(),
@@ -262,11 +266,10 @@ function Dashboard() {
                 fechaFin: fechaFin?.toISOString(),
             }
 
-            console.log('🚀 Enviando tratamiento:', tratamientoData)
             await dispatch(createTratamientoAction(tratamientoData)).unwrap()
-            console.log('✅ Tratamiento creado')
 
             // Limpiar formulario
+            setNombre('')
             setSelectedPastilla('')
             setDosis('')
             setFrecuencia('')
@@ -275,15 +278,19 @@ function Dashboard() {
             setFechaFin(undefined)
 
             toast({
-                title: '✅ Éxito',
+                title: 'Éxito',
                 description: 'Tratamiento creado exitosamente',
             })
         } catch (error: any) {
-            console.error('Error al crear tratamiento:', error)
+            console.error('Error crítico al crear tratamiento:', error)
+            const errorMessage =
+                error?.message ||
+                error?.toString() ||
+                'Error al crear tratamiento'
             toast({
                 variant: 'destructive',
-                title: '❌ Error',
-                description: error || 'Error al crear tratamiento',
+                title: 'Error',
+                description: errorMessage,
             })
         } finally {
             setIsCreating(false)
@@ -300,21 +307,76 @@ function Dashboard() {
         try {
             await dispatch(cancelTratamientoAction(id)).unwrap()
             toast({
-                title: '✅ Éxito',
+                title: 'Éxito',
                 description: 'Tratamiento cancelado correctamente',
             })
         } catch (error) {
             console.error('Error al cancelar tratamiento:', error)
             toast({
                 variant: 'destructive',
-                title: '❌ Error',
+                title: 'Error',
                 description: 'No se pudo cancelar el tratamiento',
+            })
+        }
+    }
+
+    const handleFinalizarTratamiento = async (id: string) => {
+        if (
+            !confirm('¿Estás seguro de que deseas finalizar este tratamiento?')
+        ) {
+            return
+        }
+
+        try {
+            await tratamientoService.updateEstado(id, 'finalizado')
+            // Recargar tratamientos
+            if (dbUser?._id) {
+                dispatch(fetchTratamientosByUsuario(dbUser._id))
+            }
+            toast({
+                title: 'Éxito',
+                description: 'Tratamiento finalizado correctamente',
+            })
+        } catch (error) {
+            console.error('Error al finalizar tratamiento:', error)
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo finalizar el tratamiento',
+            })
+        }
+    }
+
+    const handleSuspenderTratamiento = async (id: string) => {
+        if (
+            !confirm('¿Estás seguro de que deseas suspender este tratamiento?')
+        ) {
+            return
+        }
+
+        try {
+            await tratamientoService.updateEstado(id, 'suspendido')
+            // Recargar tratamientos
+            if (dbUser?._id) {
+                dispatch(fetchTratamientosByUsuario(dbUser._id))
+            }
+            toast({
+                title: 'Éxito',
+                description: 'Tratamiento suspendido correctamente',
+            })
+        } catch (error) {
+            console.error('Error al suspender tratamiento:', error)
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo suspender el tratamiento',
             })
         }
     }
 
     const handleEditTratamiento = (tratamiento: Tratamiento) => {
         setEditingTratamiento(tratamiento)
+        setEditNombre(tratamiento.nombre)
         setEditDosis(tratamiento.dosis)
         setEditFrecuencia(tratamiento.frecuencia.toString())
         setEditHoraInicio(tratamiento.horaInicio)
@@ -331,11 +393,29 @@ function Dashboard() {
         if (!editingTratamiento) return
 
         // Validaciones similares a la creación
+        if (!editNombre.trim()) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Por favor ingresa el nombre del tratamiento',
+            })
+            return
+        }
         if (!editDosis.trim()) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
                 description: 'Por favor ingresa la dosis',
+            })
+            return
+        }
+        // Validar que la dosis sea un número entero positivo
+        const dosisNum = parseInt(editDosis.trim())
+        if (isNaN(dosisNum) || dosisNum <= 0 || !Number.isInteger(dosisNum)) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'La dosis debe ser un número entero positivo',
             })
             return
         }
@@ -360,6 +440,7 @@ function Dashboard() {
         try {
             setIsCreating(true)
             const updateData = {
+                nombre: editNombre.trim(),
                 dosis: editDosis.trim(),
                 frecuencia: freq,
                 horaInicio: editHoraInicio,
@@ -371,12 +452,12 @@ function Dashboard() {
                 updateTratamientoAction({
                     id: editingTratamiento._id,
                     data: updateData,
-                })
+                }),
             ).unwrap()
 
             setIsEditDialogOpen(false)
             toast({
-                title: '✅ Éxito',
+                title: 'Éxito',
                 description: 'Tratamiento actualizado correctamente',
             })
         } catch (error: any) {
@@ -384,7 +465,7 @@ function Dashboard() {
             const errorMessage = error || 'Error al actualizar'
             toast({
                 variant: 'destructive',
-                title: '❌ Error',
+                title: 'Error',
                 description: errorMessage,
             })
         } finally {
@@ -412,6 +493,20 @@ function Dashboard() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
+                                    <Label htmlFor="nombre">
+                                        Nombre del Tratamiento
+                                    </Label>
+                                    <Input
+                                        id="nombre"
+                                        placeholder="Ej: Tratamiento para dolor de cabeza"
+                                        value={nombre}
+                                        onChange={(e) =>
+                                            setNombre(e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label>Pastilla</Label>
                                     <Popover
                                         open={openCombobox}
@@ -427,12 +522,12 @@ function Dashboard() {
                                                 {loadingPastillas
                                                     ? 'Cargando pastillas...'
                                                     : selectedPastilla
-                                                    ? pastillas.find(
-                                                          (pastilla) =>
-                                                              pastilla._id ===
-                                                              selectedPastilla
-                                                      )?.nombre
-                                                    : 'Selecciona una pastilla...'}
+                                                      ? pastillas.find(
+                                                            (pastilla) =>
+                                                                pastilla._id ===
+                                                                selectedPastilla,
+                                                        )?.nombre
+                                                      : 'Selecciona una pastilla...'}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -444,9 +539,9 @@ function Dashboard() {
                                                         {loadingPastillas
                                                             ? 'Cargando...'
                                                             : pastillas.length ===
-                                                              0
-                                                            ? 'No hay pastillas disponibles'
-                                                            : 'No se encontró la pastilla.'}
+                                                                0
+                                                              ? 'No hay pastillas disponibles'
+                                                              : 'No se encontró la pastilla.'}
                                                     </CommandEmpty>
                                                     <CommandGroup>
                                                         {pastillas.map(
@@ -463,10 +558,10 @@ function Dashboard() {
                                                                             pastilla._id ===
                                                                                 selectedPastilla
                                                                                 ? ''
-                                                                                : pastilla._id
+                                                                                : pastilla._id,
                                                                         )
                                                                         setOpenCombobox(
-                                                                            false
+                                                                            false,
                                                                         )
                                                                     }}
                                                                 >
@@ -476,14 +571,14 @@ function Dashboard() {
                                                                             selectedPastilla ===
                                                                                 pastilla._id
                                                                                 ? 'opacity-100'
-                                                                                : 'opacity-0'
+                                                                                : 'opacity-0',
                                                                         )}
                                                                     />
                                                                     {
                                                                         pastilla.nombre
                                                                     }
                                                                 </CommandItem>
-                                                            )
+                                                            ),
                                                         )}
                                                     </CommandGroup>
                                                 </CommandList>
@@ -493,15 +588,28 @@ function Dashboard() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="dosis">Dosis</Label>
+                                    <Label htmlFor="dosis">Dosis (mg)</Label>
                                     <Input
                                         id="dosis"
-                                        placeholder="Ej: 500mg"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        placeholder="Ej: 500"
                                         value={dosis}
-                                        onChange={(e) =>
-                                            setDosis(e.target.value)
-                                        }
+                                        onChange={(e) => {
+                                            const value = e.target.value
+                                            // Solo permitir números enteros
+                                            if (
+                                                value === '' ||
+                                                /^\d+$/.test(value)
+                                            ) {
+                                                setDosis(value)
+                                            }
+                                        }}
                                     />
+                                    <p className="text-xs text-muted-foreground">
+                                        Ingresa solo números enteros (ej: 500)
+                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -560,7 +668,7 @@ function Dashboard() {
                                                                 <Clock className="h-3 w-3 mr-1" />
                                                                 {hora}
                                                             </Badge>
-                                                        )
+                                                        ),
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-purple-600 mt-3">
@@ -588,7 +696,7 @@ function Dashboard() {
                                                 className={cn(
                                                     'w-full justify-start text-left font-normal',
                                                     !fechaInicio &&
-                                                        'text-muted-foreground'
+                                                        'text-muted-foreground',
                                                 )}
                                             >
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -625,7 +733,7 @@ function Dashboard() {
                                                 className={cn(
                                                     'w-full justify-start text-left font-normal',
                                                     !fechaFin &&
-                                                        'text-muted-foreground'
+                                                        'text-muted-foreground',
                                                 )}
                                             >
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -683,136 +791,180 @@ function Dashboard() {
                                     <p className="text-center text-red-500 py-8">
                                         Error: {errorTratamientos}
                                     </p>
-                                ) : tratamientos.length === 0 ? (
+                                ) : tratamientos.filter(
+                                      (t) => t.estado === 'activo',
+                                  ).length === 0 ? (
                                     <p className="text-center text-gray-500 py-8">
                                         No tienes tratamientos activos
                                     </p>
                                 ) : (
                                     <div className="space-y-4">
-                                        {tratamientos.map((tratamiento) => (
-                                            <div
-                                                key={tratamiento._id}
-                                                className="p-4 border rounded-lg hover:shadow-md transition-shadow"
-                                            >
-                                                <div className="flex justify-between items-start">
-                                                    <h3 className="font-semibold text-lg text-indigo-900">
-                                                        {typeof tratamiento.pastilla ===
-                                                        'string'
-                                                            ? 'Pastilla'
-                                                            : tratamiento
-                                                                  .pastilla
-                                                                  .nombre}
-                                                    </h3>
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                            onClick={() =>
-                                                                handleEditTratamiento(
-                                                                    tratamiento
-                                                                )
-                                                            }
-                                                        >
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                            onClick={() =>
-                                                                handleCancelTratamiento(
-                                                                    tratamiento._id
-                                                                )
-                                                            }
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-4 space-y-2">
-                                                    <div className="flex items-center text-sm text-gray-600">
-                                                        <Pill className="h-4 w-4 mr-2 text-purple-500" />
-                                                        <span className="font-medium mr-1">
-                                                            Dosis:
-                                                        </span>{' '}
-                                                        {tratamiento.dosis}
-                                                    </div>
-                                                    <div className="flex items-center text-sm text-gray-600">
-                                                        <Activity className="h-4 w-4 mr-2 text-blue-500" />
-                                                        <span className="font-medium mr-1">
-                                                            Frecuencia:
-                                                        </span>{' '}
-                                                        {tratamiento.frecuencia}
-                                                        x al día
-                                                    </div>
-                                                    <div className="flex items-center text-sm text-gray-600">
-                                                        <Clock className="h-4 w-4 mr-2 text-indigo-500" />
-                                                        <span className="font-medium mr-1">
-                                                            Hora inicio:
-                                                        </span>{' '}
-                                                        {tratamiento.horaInicio}
-                                                    </div>
-
-                                                    <div className="flex items-center text-sm text-gray-600 pt-1">
-                                                        <CalendarLucide className="h-4 w-4 mr-2 text-emerald-500" />
-                                                        <span className="font-medium mr-1">
-                                                            Periodo:
-                                                        </span>
-                                                        {format(
-                                                            new Date(
-                                                                tratamiento.fechaInicio
-                                                            ),
-                                                            'd MMM yy',
-                                                            { locale: es }
-                                                        )}
-                                                        {tratamiento.fechaFin && (
-                                                            <>
-                                                                <ArrowRight className="h-3 w-3 mx-2" />
-                                                                {format(
-                                                                    new Date(
-                                                                        tratamiento.fechaFin
-                                                                    ),
-                                                                    'd MMM yy',
-                                                                    {
-                                                                        locale: es,
-                                                                    }
-                                                                )}
-                                                            </>
-                                                        )}
-                                                    </div>
-
-                                                    {tratamiento.horarios &&
-                                                        tratamiento.horarios
-                                                            .length > 0 && (
-                                                            <div className="mt-3 flex flex-wrap gap-1.5">
-                                                                {tratamiento.horarios.map(
-                                                                    (
-                                                                        horario,
-                                                                        idx
-                                                                    ) => (
-                                                                        <Badge
-                                                                            key={
-                                                                                idx
-                                                                            }
-                                                                            variant={
-                                                                                horario.tomado
-                                                                                    ? 'default'
-                                                                                    : 'secondary'
-                                                                            }
-                                                                            className="text-[10px] px-2 py-0"
-                                                                        >
-                                                                            {
-                                                                                horario.hora
-                                                                            }
-                                                                        </Badge>
+                                        {tratamientos
+                                            .filter(
+                                                (t) => t.estado === 'activo',
+                                            )
+                                            .map((tratamiento) => (
+                                                <div
+                                                    key={tratamiento._id}
+                                                    className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <h3 className="font-semibold text-lg text-indigo-900">
+                                                                {
+                                                                    tratamiento.nombre
+                                                                }
+                                                            </h3>
+                                                            <p className="text-sm text-gray-500">
+                                                                {typeof tratamiento.pastilla ===
+                                                                'string'
+                                                                    ? 'Pastilla'
+                                                                    : tratamiento
+                                                                          .pastilla
+                                                                          .nombre}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                                onClick={() =>
+                                                                    handleEditTratamiento(
+                                                                        tratamiento,
                                                                     )
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                                }
+                                                            >
+                                                                <Edit2 className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                                onClick={() =>
+                                                                    handleFinalizarTratamiento(
+                                                                        tratamiento._id,
+                                                                    )
+                                                                }
+                                                                title="Finalizar tratamiento"
+                                                            >
+                                                                <Check className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                                                onClick={() =>
+                                                                    handleSuspenderTratamiento(
+                                                                        tratamiento._id,
+                                                                    )
+                                                                }
+                                                                title="Suspender tratamiento"
+                                                            >
+                                                                <Pause className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                onClick={() =>
+                                                                    handleCancelTratamiento(
+                                                                        tratamiento._id,
+                                                                    )
+                                                                }
+                                                                title="Cancelar tratamiento"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4 space-y-2">
+                                                        <div className="flex items-center text-sm text-gray-600">
+                                                            <Pill className="h-4 w-4 mr-2 text-purple-500" />
+                                                            <span className="font-medium mr-1">
+                                                                Dosis:
+                                                            </span>{' '}
+                                                            {tratamiento.dosis}
+                                                        </div>
+                                                        <div className="flex items-center text-sm text-gray-600">
+                                                            <Activity className="h-4 w-4 mr-2 text-blue-500" />
+                                                            <span className="font-medium mr-1">
+                                                                Frecuencia:
+                                                            </span>{' '}
+                                                            {
+                                                                tratamiento.frecuencia
+                                                            }
+                                                            x al día
+                                                        </div>
+                                                        <div className="flex items-center text-sm text-gray-600">
+                                                            <Clock className="h-4 w-4 mr-2 text-indigo-500" />
+                                                            <span className="font-medium mr-1">
+                                                                Hora inicio:
+                                                            </span>{' '}
+                                                            {
+                                                                tratamiento.horaInicio
+                                                            }
+                                                        </div>
+
+                                                        <div className="flex items-center text-sm text-gray-600 pt-1">
+                                                            <CalendarLucide className="h-4 w-4 mr-2 text-emerald-500" />
+                                                            <span className="font-medium mr-1">
+                                                                Periodo:
+                                                            </span>
+                                                            {format(
+                                                                new Date(
+                                                                    tratamiento.fechaInicio,
+                                                                ),
+                                                                'd MMM yy',
+                                                                { locale: es },
+                                                            )}
+                                                            {tratamiento.fechaFin && (
+                                                                <>
+                                                                    <ArrowRight className="h-3 w-3 mx-2" />
+                                                                    {format(
+                                                                        new Date(
+                                                                            tratamiento.fechaFin,
+                                                                        ),
+                                                                        'd MMM yy',
+                                                                        {
+                                                                            locale: es,
+                                                                        },
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </div>
+
+                                                        {tratamiento.horarios &&
+                                                            tratamiento.horarios
+                                                                .length > 0 && (
+                                                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                                                    {tratamiento.horarios.map(
+                                                                        (
+                                                                            horario,
+                                                                            idx,
+                                                                        ) => (
+                                                                            <Badge
+                                                                                key={
+                                                                                    idx
+                                                                                }
+                                                                                variant={
+                                                                                    horario.tomado
+                                                                                        ? 'default'
+                                                                                        : 'secondary'
+                                                                                }
+                                                                                className="text-[10px] px-2 py-0"
+                                                                            >
+                                                                                {
+                                                                                    horario.hora
+                                                                                }
+                                                                            </Badge>
+                                                                        ),
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
                                     </div>
                                 )}
                             </CardContent>
@@ -840,12 +992,37 @@ function Dashboard() {
 
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="edit-dosis">Dosis</Label>
+                            <Label htmlFor="edit-nombre">
+                                Nombre del Tratamiento
+                            </Label>
+                            <Input
+                                id="edit-nombre"
+                                placeholder="Ej: Tratamiento para dolor de cabeza"
+                                value={editNombre}
+                                onChange={(e) => setEditNombre(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-dosis">Dosis (mg)</Label>
                             <Input
                                 id="edit-dosis"
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="Ej: 500"
                                 value={editDosis}
-                                onChange={(e) => setEditDosis(e.target.value)}
+                                onChange={(e) => {
+                                    const value = e.target.value
+                                    // Solo permitir números enteros
+                                    if (value === '' || /^\d+$/.test(value)) {
+                                        setEditDosis(value)
+                                    }
+                                }}
                             />
+                            <p className="text-xs text-muted-foreground">
+                                Ingresa solo números enteros (ej: 500)
+                            </p>
                         </div>
 
                         <div className="space-y-2">
@@ -888,7 +1065,7 @@ function Dashboard() {
                                             className={cn(
                                                 'w-full justify-start text-left font-normal',
                                                 !editFechaInicio &&
-                                                    'text-muted-foreground'
+                                                    'text-muted-foreground',
                                             )}
                                         >
                                             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -921,7 +1098,7 @@ function Dashboard() {
                                             className={cn(
                                                 'w-full justify-start text-left font-normal',
                                                 !editFechaFin &&
-                                                    'text-muted-foreground'
+                                                    'text-muted-foreground',
                                             )}
                                         >
                                             <CalendarIcon className="mr-2 h-4 w-4" />

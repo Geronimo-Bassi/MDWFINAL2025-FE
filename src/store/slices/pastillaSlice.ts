@@ -21,5 +21,5 @@ export const fetchPastillas = createAsyncThunk(
     async () => {
         const response = await pastillaService.getAll()
         return response
-    }
+    },
 )

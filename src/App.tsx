@@ -7,6 +7,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import CompleteProfile from './pages/CompleteProfile'
 import Dashboard from './pages/Dashboard'
+import Historial from './pages/Historial'
+import Perfil from './pages/Perfil'
 import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
 
@@ -27,6 +29,22 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     <Dashboard />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/historial"
+                            element={
+                                <ProtectedRoute>
+                                    <Historial />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/perfil"
+                            element={
+                                <ProtectedRoute>
+                                    <Perfil />
                                 </ProtectedRoute>
                             }
                         />
