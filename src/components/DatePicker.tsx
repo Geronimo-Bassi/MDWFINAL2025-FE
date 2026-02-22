@@ -25,7 +25,6 @@ export function DatePicker({
     disabled = false,
     placeholder = 'Selecciona una fecha',
     maxDate = new Date(),
-    label,
 }: DatePickerProps) {
     const [open, setOpen] = React.useState(false)
     const selectedDate = value ? new Date(value) : undefined
