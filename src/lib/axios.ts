@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
 
 // Base URL del backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_BASE_URL = 'https://mdwfinal2025-be.onrender.com'
 
 // Crear instancia de axios con configuración base
 const axiosInstance = axios.create({
