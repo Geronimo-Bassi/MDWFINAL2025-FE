@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
 
 // Base URL del backend
-const API_BASE_URL = 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 // Crear instancia de axios con configuración base
 const axiosInstance = axios.create({
@@ -116,7 +116,7 @@ axiosInstance.interceptors.response.use(
             // La petición se hizo pero no hubo respuesta
             console.error(' No response from server:', error.message)
             console.error(
-                'Verificar si el backend está corriendo en http://localhost:3000',
+                `Verificar si el backend está corriendo en ${API_BASE_URL}`,
             )
         } else {
             // Algo pasó al configurar la petición
