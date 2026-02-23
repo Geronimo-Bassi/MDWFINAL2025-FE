@@ -12,6 +12,7 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<User>
     signOut: () => Promise<void>
     getToken: () => Promise<string | null>
+    resetPassword: (email: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGoogle: authService.signInWithGoogle,
         signOut: authService.signOut,
         getToken: authService.getIdToken,
+        resetPassword: authService.resetPassword,
     }
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

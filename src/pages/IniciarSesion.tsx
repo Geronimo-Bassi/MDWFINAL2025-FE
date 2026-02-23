@@ -16,7 +16,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { AlertCircle } from 'lucide-react'
 
-function Login() {
+function IniciarSesion() {
     const navigate = useNavigate()
     const { signIn, signInWithGoogle } = useAuth()
     const [email, setEmail] = useState('')
@@ -52,7 +52,7 @@ function Login() {
 
         try {
             await signIn(email, password)
-            navigate('/dashboard')
+            navigate('/panel')
         } catch (err: any) {
             setError(getErrorMessage(err))
         } finally {
@@ -81,10 +81,10 @@ function Login() {
                 if (mongoUser) {
                     // User exists, store ID and go to dashboard
                     localStorage.setItem('mongoUserId', mongoUser._id)
-                    navigate('/dashboard')
+                    navigate('/panel')
                 } else {
                     // New user, redirect to complete profile
-                    navigate('/complete-profile', {
+                    navigate('/completar-perfil', {
                         state: {
                             email: user.email,
                             nombre:
@@ -94,7 +94,7 @@ function Login() {
                 }
             } catch (err) {
                 // If can't fetch users, assume new user
-                navigate('/complete-profile', {
+                navigate('/completar-perfil', {
                     state: {
                         email: user.email,
                         nombre: user.displayName || user.email.split('@')[0],
@@ -178,12 +178,20 @@ function Login() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label
-                                    htmlFor="password"
-                                    className="text-sm font-medium"
-                                >
-                                    Contraseña
-                                </Label>
+                                <div className="flex items-center justify-between">
+                                    <Label
+                                        htmlFor="password"
+                                        className="text-sm font-medium"
+                                    >
+                                        Contraseña
+                                    </Label>
+                                    <Link
+                                        to="/recuperar-contrasena"
+                                        className="text-sm font-medium text-purple-600 hover:text-purple-700 hover:underline transition-colors"
+                                    >
+                                        ¿Olvidaste tu contraseña?
+                                    </Link>
+                                </div>
                                 <Input
                                     id="password"
                                     type="password"
@@ -201,7 +209,7 @@ function Login() {
                             <Button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
+                                className="w-full h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] mt-2"
                             >
                                 {loading ? (
                                     <div className="flex items-center gap-2">
@@ -261,7 +269,7 @@ function Login() {
                             <p className="text-sm text-gray-600">
                                 ¿No tienes una cuenta?{' '}
                                 <Link
-                                    to="/register"
+                                    to="/registro"
                                     className="font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent hover:from-purple-700 hover:to-blue-700 transition-all"
                                 >
                                     Regístrate gratis
@@ -301,4 +309,4 @@ function Login() {
     )
 }
 
-export default Login
+export default IniciarSesion

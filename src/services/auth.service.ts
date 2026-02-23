@@ -15,7 +15,7 @@ export const authService = {
         const userCredential = await createUserWithEmailAndPassword(
             auth,
             email,
-            password
+            password,
         )
         return userCredential.user
     },
@@ -25,7 +25,7 @@ export const authService = {
         const userCredential = await signInWithEmailAndPassword(
             auth,
             email,
-            password
+            password,
         )
         return userCredential.user
     },
@@ -59,5 +59,11 @@ export const authService = {
         const user = auth.currentUser
         if (!user) return null
         return await user.getIdToken(true) // true = force refresh
+    },
+
+    // Recuperar contraseña
+    async resetPassword(email: string): Promise<void> {
+        const { sendPasswordResetEmail } = await import('firebase/auth')
+        await sendPasswordResetEmail(auth, email)
     },
 }

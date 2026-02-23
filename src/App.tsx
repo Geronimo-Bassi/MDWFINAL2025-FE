@@ -3,10 +3,11 @@ import { Provider } from 'react-redux'
 import { store } from './store'
 import { AuthProvider } from './context/AuthContext'
 import { Toaster } from './components/ui/toaster'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import CompleteProfile from './pages/CompleteProfile'
-import Dashboard from './pages/Dashboard'
+import IniciarSesion from './pages/IniciarSesion'
+import Registro from './pages/Registro'
+import RecuperarContrasena from './pages/RecuperarContrasena'
+import CompletarPerfil from './pages/CompletarPerfil'
+import Panel from './pages/Panel'
 import Historial from './pages/Historial'
 import Perfil from './pages/Perfil'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -18,17 +19,25 @@ function App() {
             <AuthProvider>
                 <BrowserRouter>
                     <Routes>
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
                         <Route
-                            path="/complete-profile"
-                            element={<CompleteProfile />}
+                            path="/iniciar-sesion"
+                            element={<IniciarSesion />}
+                        />
+                        <Route path="/registro" element={<Registro />} />
+                        <Route
+                            path="/recuperar-contrasena"
+                            element={<RecuperarContrasena />}
                         />
                         <Route
-                            path="/dashboard"
+                            path="/completar-perfil"
+                            element={<CompletarPerfil />}
+                        />
+                        {/* Protected Routes */}
+                        <Route
+                            path="/panel"
                             element={
                                 <ProtectedRoute>
-                                    <Dashboard />
+                                    <Panel />
                                 </ProtectedRoute>
                             }
                         />
@@ -48,9 +57,10 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
+                        {/* Root redirect */}
                         <Route
                             path="/"
-                            element={<Navigate to="/login" replace />}
+                            element={<Navigate to="/iniciar-sesion" replace />}
                         />
                     </Routes>
                     <Toaster />

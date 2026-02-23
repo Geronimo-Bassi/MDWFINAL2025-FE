@@ -70,7 +70,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
-function Dashboard() {
+function Panel() {
     const { user, signOut } = useAuth()
     const { toast } = useToast()
     const navigate = useNavigate()
@@ -183,7 +183,7 @@ function Dashboard() {
 
     const handleSignOut = async () => {
         await signOut()
-        navigate('/login')
+        navigate('/iniciar-sesion')
     }
 
     const handleCreateTratamiento = async () => {
@@ -1145,4 +1145,4 @@ function Dashboard() {
     )
 }
 
-export default Dashboard
+export default Panel

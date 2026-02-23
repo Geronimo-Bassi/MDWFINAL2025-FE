@@ -19,7 +19,7 @@ export default function Perfil() {
     const handleSignOut = async () => {
         try {
             await signOut()
-            navigate('/login')
+            navigate('/iniciar-sesion')
         } catch (error) {
             console.error('Error al cerrar sesión:', error)
         }
@@ -27,7 +27,7 @@ export default function Perfil() {
 
     useEffect(() => {
         if (!user) {
-            navigate('/login')
+            navigate('/iniciar-sesion')
             return
         }
 
@@ -89,7 +89,7 @@ export default function Perfil() {
                         </h2>
                         <p className="text-gray-600 mb-6">{error}</p>
                         <button
-                            onClick={() => navigate('/complete-profile')}
+                            onClick={() => navigate('/completar-perfil')}
                             className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                         >
                             Completar Registro

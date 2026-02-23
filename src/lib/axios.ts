@@ -1,8 +1,8 @@
 import axios, { AxiosError } from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
 
-// Base URL del backend
-const API_BASE_URL = 'https://mdwfinal2025-be.onrender.com'
+// Base URL del backend (usa la variable de entorno, si no existe usa la de producción)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 // Crear instancia de axios con configuración base
 const axiosInstance = axios.create({
@@ -100,7 +100,9 @@ axiosInstance.interceptors.response.use(
                         },
                     )
                     if (typeof window !== 'undefined') {
-                        window.location.href = '/login'
+                        if (window.location.pathname !== '/iniciar-sesion') {
+                            window.location.href = '/iniciar-sesion'
+                        }
                     }
                     break
                 case 404:

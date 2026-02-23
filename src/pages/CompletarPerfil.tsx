@@ -8,7 +8,7 @@ interface LocationState {
     nombre: string
 }
 
-function CompleteProfile() {
+function CompletarPerfil() {
     const navigate = useNavigate()
     const location = useLocation()
     const { email, nombre } = (location.state as LocationState) || {}
@@ -61,7 +61,7 @@ function CompleteProfile() {
             // Store MongoDB user ID
             localStorage.setItem('mongoUserId', mongoUser._id)
 
-            navigate('/dashboard')
+            navigate('/panel')
         } catch (err: any) {
             setError(getErrorMessage(err))
         } finally {
@@ -70,7 +70,7 @@ function CompleteProfile() {
     }
 
     if (!email || !nombre) {
-        navigate('/login')
+        navigate('/iniciar-sesion')
         return null
     }
 
@@ -162,4 +162,4 @@ function CompleteProfile() {
     )
 }
 
-export default CompleteProfile
+export default CompletarPerfil

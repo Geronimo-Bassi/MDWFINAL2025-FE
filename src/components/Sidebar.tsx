@@ -13,7 +13,7 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
         <div className="w-16 md:w-60 lg:w-80 xl:w-96 bg-gray-50 min-h-screen flex flex-col border-r border-gray-200">
             {/* Header with Logo and App Name */}
             <Link
-                to="/dashboard"
+                to="/panel"
                 className="p-2 md:p-4 lg:p-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
             >
                 <img
