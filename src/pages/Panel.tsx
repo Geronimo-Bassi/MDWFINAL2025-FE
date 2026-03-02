@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useToast } from '../hooks/use-toast'
 import { es } from 'date-fns/locale'
+import { useForm } from 'react-hook-form'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
@@ -83,17 +84,39 @@ function Panel() {
         error: errorTratamientos,
     } = useAppSelector((state) => state.tratamientos)
 
-    const [fechaInicio, setFechaInicio] = useState<Date>()
-    const [fechaFin, setFechaFin] = useState<Date>()
+    type CreateFormData = {
+        nombre: string
+        selectedPastilla: string
+        dosis: string
+        frecuencia: string
+        horaInicio: string
+        fechaInicio: Date | undefined
+        fechaFin: Date | undefined
+    }
+
+    const { register, handleSubmit, watch, setValue, reset } =
+        useForm<CreateFormData>({
+            defaultValues: {
+                nombre: '',
+                selectedPastilla: '',
+                dosis: '',
+                frecuencia: '',
+                horaInicio: '08:00',
+                fechaInicio: undefined,
+                fechaFin: undefined,
+            },
+        })
+
+    const watchFrecuencia = watch('frecuencia')
+    const watchHoraInicio = watch('horaInicio')
+    const watchSelectedPastilla = watch('selectedPastilla')
+    const watchFechaInicio = watch('fechaInicio')
+    const watchFechaFin = watch('fechaFin')
+
     const [openCombobox, setOpenCombobox] = useState(false)
-    const [selectedPastilla, setSelectedPastilla] = useState('')
     const [pastillas, setPastillas] = useState<Pastilla[]>([])
     const [loadingPastillas, setLoadingPastillas] = useState(true)
-    const [nombre, setNombre] = useState('')
-    const [dosis, setDosis] = useState('')
-    const [frecuencia, setFrecuencia] = useState('')
     const [isCreating, setIsCreating] = useState(false)
-    const [horaInicio, setHoraInicio] = useState('08:00')
     const [dbUser, setDbUser] = useState<DbUser | null>(null)
 
     // Estado para edición
@@ -158,11 +181,13 @@ function Panel() {
 
     // Calcular vista previa de horarios
     const calculateSchedulePreview = () => {
-        const freq = parseInt(frecuencia)
-        if (!freq || freq < 1 || freq > 24 || !horaInicio) return []
+        const freq = parseInt(watchFrecuencia)
+        if (!freq || freq < 1 || freq > 24 || !watchHoraInicio) return []
 
         const intervalo = 24 / freq
-        const [horaInicial, minutoInicial] = horaInicio.split(':').map(Number)
+        const [horaInicial, minutoInicial] = watchHoraInicio
+            .split(':')
+            .map(Number)
         const horarios: string[] = []
 
         for (let i = 0; i < freq; i++) {
@@ -186,62 +211,7 @@ function Panel() {
         navigate('/iniciar-sesion')
     }
 
-    const handleCreateTratamiento = async () => {
-        // Validaciones
-        if (!nombre.trim()) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Por favor ingresa el nombre del tratamiento',
-            })
-            return
-        }
-        if (!selectedPastilla) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Por favor selecciona una pastilla',
-            })
-            return
-        }
-        if (!dosis.trim()) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Por favor ingresa la dosis',
-            })
-            return
-        }
-        // Validar que la dosis sea un número entero positivo
-        const dosisNum = parseInt(dosis.trim())
-        if (isNaN(dosisNum) || dosisNum <= 0 || !Number.isInteger(dosisNum)) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'La dosis debe ser un número entero positivo',
-            })
-            return
-        }
-        if (
-            !frecuencia ||
-            parseInt(frecuencia) < 1 ||
-            parseInt(frecuencia) > 24
-        ) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'La frecuencia debe estar entre 1 y 24',
-            })
-            return
-        }
-        if (!fechaInicio) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Por favor selecciona la fecha de inicio',
-            })
-            return
-        }
+    const handleCreateTratamiento = async (data: CreateFormData) => {
         if (!dbUser?._id) {
             toast({
                 variant: 'destructive',
@@ -256,26 +226,19 @@ function Panel() {
             setIsCreating(true)
 
             const tratamientoData = {
-                nombre: nombre.trim(),
+                nombre: data.nombre.trim(),
                 usuarioId: dbUser._id,
-                pastillaId: selectedPastilla,
-                dosis: dosis.trim(),
-                frecuencia: parseInt(frecuencia),
-                horaInicio: horaInicio,
-                fechaInicio: fechaInicio.toISOString(),
-                fechaFin: fechaFin?.toISOString(),
+                pastillaId: data.selectedPastilla,
+                dosis: data.dosis.trim(),
+                frecuencia: parseInt(data.frecuencia),
+                horaInicio: data.horaInicio,
+                fechaInicio: data.fechaInicio!.toISOString(),
+                fechaFin: data.fechaFin?.toISOString(),
             }
 
             await dispatch(createTratamientoAction(tratamientoData)).unwrap()
 
-            // Limpiar formulario
-            setNombre('')
-            setSelectedPastilla('')
-            setDosis('')
-            setFrecuencia('')
-            setHoraInicio('08:00')
-            setFechaInicio(undefined)
-            setFechaFin(undefined)
+            reset() // Limpiar formulario
 
             toast({
                 title: 'Éxito',
@@ -484,293 +447,322 @@ function Panel() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Columna Izquierda: Formulario */}
                     <div>
-                        <Card className="w-full">
-                            <CardHeader>
-                                <CardTitle>Crear Tratamiento</CardTitle>
-                                <CardDescription>
-                                    Completa los datos del nuevo tratamiento
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="nombre">
-                                        Nombre del Tratamiento
-                                    </Label>
-                                    <Input
-                                        id="nombre"
-                                        placeholder="Ej: Tratamiento para dolor de cabeza"
-                                        value={nombre}
-                                        onChange={(e) =>
-                                            setNombre(e.target.value)
-                                        }
-                                    />
-                                </div>
+                        <form onSubmit={handleSubmit(handleCreateTratamiento)}>
+                            <Card className="w-full">
+                                <CardHeader>
+                                    <CardTitle>Crear Tratamiento</CardTitle>
+                                    <CardDescription>
+                                        Completa los datos del nuevo tratamiento
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="nombre">
+                                            Nombre del Tratamiento
+                                        </Label>
+                                        <Input
+                                            id="nombre"
+                                            placeholder="Ej: Tratamiento para dolor de cabeza"
+                                            {...register('nombre', {
+                                                required: true,
+                                            })}
+                                        />
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <Label>Pastilla</Label>
-                                    <Popover
-                                        open={openCombobox}
-                                        onOpenChange={setOpenCombobox}
-                                    >
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openCombobox}
-                                                className="w-full justify-between"
-                                            >
-                                                {loadingPastillas
-                                                    ? 'Cargando pastillas...'
-                                                    : selectedPastilla
-                                                      ? pastillas.find(
-                                                            (pastilla) =>
-                                                                pastilla._id ===
-                                                                selectedPastilla,
-                                                        )?.nombre
-                                                      : 'Selecciona una pastilla...'}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar pastilla..." />
-                                                <CommandList>
-                                                    <CommandEmpty>
-                                                        {loadingPastillas
-                                                            ? 'Cargando...'
-                                                            : pastillas.length ===
-                                                                0
-                                                              ? 'No hay pastillas disponibles'
-                                                              : 'No se encontró la pastilla.'}
-                                                    </CommandEmpty>
-                                                    <CommandGroup>
-                                                        {pastillas.map(
-                                                            (pastilla) => (
-                                                                <CommandItem
-                                                                    key={
-                                                                        pastilla._id
-                                                                    }
-                                                                    value={
-                                                                        pastilla.nombre
-                                                                    }
-                                                                    onSelect={() => {
-                                                                        setSelectedPastilla(
-                                                                            pastilla._id ===
-                                                                                selectedPastilla
-                                                                                ? ''
-                                                                                : pastilla._id,
-                                                                        )
-                                                                        setOpenCombobox(
-                                                                            false,
-                                                                        )
-                                                                    }}
+                                    <div className="space-y-2">
+                                        <Label>Pastilla</Label>
+                                        <Popover
+                                            open={openCombobox}
+                                            onOpenChange={setOpenCombobox}
+                                        >
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    aria-expanded={openCombobox}
+                                                    className="w-full justify-between"
+                                                >
+                                                    {loadingPastillas
+                                                        ? 'Cargando pastillas...'
+                                                        : watchSelectedPastilla
+                                                          ? pastillas.find(
+                                                                (pastilla) =>
+                                                                    pastilla._id ===
+                                                                    watchSelectedPastilla,
+                                                            )?.nombre
+                                                          : 'Selecciona una pastilla...'}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-full p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Buscar pastilla..." />
+                                                    <CommandList>
+                                                        <CommandEmpty>
+                                                            {loadingPastillas
+                                                                ? 'Cargando...'
+                                                                : pastillas.length ===
+                                                                    0
+                                                                  ? 'No hay pastillas disponibles'
+                                                                  : 'No se encontró la pastilla.'}
+                                                        </CommandEmpty>
+                                                        <CommandGroup>
+                                                            {pastillas.map(
+                                                                (pastilla) => (
+                                                                    <CommandItem
+                                                                        key={
+                                                                            pastilla._id
+                                                                        }
+                                                                        value={
+                                                                            pastilla.nombre
+                                                                        }
+                                                                        onSelect={() => {
+                                                                            const newValue =
+                                                                                pastilla._id ===
+                                                                                watchSelectedPastilla
+                                                                                    ? ''
+                                                                                    : pastilla._id
+                                                                            setValue(
+                                                                                'selectedPastilla',
+                                                                                newValue,
+                                                                                {
+                                                                                    shouldValidate: true,
+                                                                                },
+                                                                            )
+                                                                            setOpenCombobox(
+                                                                                false,
+                                                                            )
+                                                                        }}
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                'mr-2 h-4 w-4',
+                                                                                watchSelectedPastilla ===
+                                                                                    pastilla._id
+                                                                                    ? 'opacity-100'
+                                                                                    : 'opacity-0',
+                                                                            )}
+                                                                        />
+                                                                        {
+                                                                            pastilla.nombre
+                                                                        }
+                                                                    </CommandItem>
+                                                                ),
+                                                            )}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dosis">
+                                            Dosis (mg)
+                                        </Label>
+                                        <Input
+                                            id="dosis"
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            placeholder="Ej: 500"
+                                            {...register('dosis', {
+                                                required: true,
+                                            })}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Ingresa solo números enteros (ej:
+                                            500)
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="frecuencia">
+                                            Frecuencia (veces al día)
+                                        </Label>
+                                        <Input
+                                            id="frecuencia"
+                                            type="number"
+                                            min="1"
+                                            max="24"
+                                            placeholder="Ej: 3"
+                                            {...register('frecuencia', {
+                                                required: true,
+                                            })}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="horaInicio">
+                                            Hora de Inicio
+                                        </Label>
+                                        <Input
+                                            id="horaInicio"
+                                            type="time"
+                                            {...register('horaInicio', {
+                                                required: true,
+                                            })}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Los horarios se calcularán
+                                            automáticamente según la frecuencia
+                                        </p>
+                                    </div>
+
+                                    {/* Vista previa de horarios */}
+                                    {watchFrecuencia &&
+                                        parseInt(watchFrecuencia) > 0 &&
+                                        parseInt(watchFrecuencia) <= 24 && (
+                                            <Alert className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+                                                <Clock className="h-4 w-4 text-purple-600" />
+                                                <AlertTitle className="text-purple-900">
+                                                    Horarios programados
+                                                </AlertTitle>
+                                                <AlertDescription>
+                                                    <div className="flex flex-wrap gap-2 mt-3">
+                                                        {calculateSchedulePreview().map(
+                                                            (hora, index) => (
+                                                                <Badge
+                                                                    key={index}
+                                                                    variant="secondary"
+                                                                    className="px-3 py-1.5 bg-white border border-purple-300 text-purple-700 hover:bg-purple-50"
                                                                 >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            'mr-2 h-4 w-4',
-                                                                            selectedPastilla ===
-                                                                                pastilla._id
-                                                                                ? 'opacity-100'
-                                                                                : 'opacity-0',
-                                                                        )}
-                                                                    />
-                                                                    {
-                                                                        pastilla.nombre
-                                                                    }
-                                                                </CommandItem>
+                                                                    <Clock className="h-3 w-3 mr-1" />
+                                                                    {hora}
+                                                                </Badge>
                                                             ),
                                                         )}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
+                                                    </div>
+                                                    <p className="text-xs text-purple-600 mt-3">
+                                                        Intervalo:{' '}
+                                                        {watchFrecuencia &&
+                                                            parseInt(
+                                                                watchFrecuencia,
+                                                            ) > 0 &&
+                                                            `cada ${
+                                                                24 /
+                                                                parseInt(
+                                                                    watchFrecuencia,
+                                                                )
+                                                            } horas`}
+                                                    </p>
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="dosis">Dosis (mg)</Label>
-                                    <Input
-                                        id="dosis"
-                                        type="number"
-                                        min="1"
-                                        step="1"
-                                        placeholder="Ej: 500"
-                                        value={dosis}
-                                        onChange={(e) => {
-                                            const value = e.target.value
-                                            // Solo permitir números enteros
-                                            if (
-                                                value === '' ||
-                                                /^\d+$/.test(value)
-                                            ) {
-                                                setDosis(value)
-                                            }
-                                        }}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Ingresa solo números enteros (ej: 500)
-                                    </p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="frecuencia">
-                                        Frecuencia (veces al día)
-                                    </Label>
-                                    <Input
-                                        id="frecuencia"
-                                        type="number"
-                                        min="1"
-                                        max="24"
-                                        placeholder="Ej: 3"
-                                        value={frecuencia}
-                                        onChange={(e) =>
-                                            setFrecuencia(e.target.value)
-                                        }
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="horaInicio">
-                                        Hora de Inicio
-                                    </Label>
-                                    <Input
-                                        id="horaInicio"
-                                        type="time"
-                                        value={horaInicio}
-                                        onChange={(e) =>
-                                            setHoraInicio(e.target.value)
-                                        }
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Los horarios se calcularán
-                                        automáticamente según la frecuencia
-                                    </p>
-                                </div>
-
-                                {/* Vista previa de horarios */}
-                                {frecuencia &&
-                                    parseInt(frecuencia) > 0 &&
-                                    parseInt(frecuencia) <= 24 && (
-                                        <Alert className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
-                                            <Clock className="h-4 w-4 text-purple-600" />
-                                            <AlertTitle className="text-purple-900">
-                                                Horarios programados
-                                            </AlertTitle>
-                                            <AlertDescription>
-                                                <div className="flex flex-wrap gap-2 mt-3">
-                                                    {calculateSchedulePreview().map(
-                                                        (hora, index) => (
-                                                            <Badge
-                                                                key={index}
-                                                                variant="secondary"
-                                                                className="px-3 py-1.5 bg-white border border-purple-300 text-purple-700 hover:bg-purple-50"
-                                                            >
-                                                                <Clock className="h-3 w-3 mr-1" />
-                                                                {hora}
-                                                            </Badge>
-                                                        ),
+                                    <div className="space-y-2">
+                                        <Label htmlFor="fechaInicio">
+                                            Fecha de Inicio
+                                        </Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    type="button"
+                                                    className={cn(
+                                                        'w-full justify-start text-left font-normal',
+                                                        !watchFechaInicio &&
+                                                            'text-muted-foreground',
                                                     )}
-                                                </div>
-                                                <p className="text-xs text-purple-600 mt-3">
-                                                    Intervalo:{' '}
-                                                    {frecuencia &&
-                                                        parseInt(frecuencia) >
-                                                            0 &&
-                                                        `cada ${
-                                                            24 /
-                                                            parseInt(frecuencia)
-                                                        } horas`}
-                                                </p>
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {watchFechaInicio ? (
+                                                        format(
+                                                            watchFechaInicio,
+                                                            'PPP',
+                                                            {
+                                                                locale: es,
+                                                            },
+                                                        )
+                                                    ) : (
+                                                        <span>
+                                                            Selecciona una fecha
+                                                        </span>
+                                                    )}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={watchFechaInicio}
+                                                    onSelect={(val) =>
+                                                        setValue(
+                                                            'fechaInicio',
+                                                            val,
+                                                            {
+                                                                shouldValidate: true,
+                                                            },
+                                                        )
+                                                    }
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="fechaInicio">
-                                        Fecha de Inicio
-                                    </Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className={cn(
-                                                    'w-full justify-start text-left font-normal',
-                                                    !fechaInicio &&
-                                                        'text-muted-foreground',
-                                                )}
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {fechaInicio ? (
-                                                    format(fechaInicio, 'PPP', {
-                                                        locale: es,
-                                                    })
-                                                ) : (
-                                                    <span>
-                                                        Selecciona una fecha
-                                                    </span>
-                                                )}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0">
-                                            <Calendar
-                                                mode="single"
-                                                selected={fechaInicio}
-                                                onSelect={setFechaInicio}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="fechaFin">
-                                        Fecha de Fin
-                                    </Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className={cn(
-                                                    'w-full justify-start text-left font-normal',
-                                                    !fechaFin &&
-                                                        'text-muted-foreground',
-                                                )}
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {fechaFin ? (
-                                                    format(fechaFin, 'PPP', {
-                                                        locale: es,
-                                                    })
-                                                ) : (
-                                                    <span>
-                                                        Selecciona una fecha
-                                                    </span>
-                                                )}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0">
-                                            <Calendar
-                                                mode="single"
-                                                selected={fechaFin}
-                                                onSelect={setFechaFin}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button
-                                    className="w-full bg-[#667eea] hover:bg-[#5568d3] text-white"
-                                    onClick={handleCreateTratamiento}
-                                    disabled={isCreating}
-                                >
-                                    {isCreating
-                                        ? 'Creando...'
-                                        : 'Crear Tratamiento'}
-                                </Button>
-                            </CardFooter>
-                        </Card>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="fechaFin">
+                                            Fecha de Fin
+                                        </Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    type="button"
+                                                    className={cn(
+                                                        'w-full justify-start text-left font-normal',
+                                                        !watchFechaFin &&
+                                                            'text-muted-foreground',
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {watchFechaFin ? (
+                                                        format(
+                                                            watchFechaFin,
+                                                            'PPP',
+                                                            {
+                                                                locale: es,
+                                                            },
+                                                        )
+                                                    ) : (
+                                                        <span>
+                                                            Selecciona una fecha
+                                                        </span>
+                                                    )}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={watchFechaFin}
+                                                    onSelect={(val) =>
+                                                        setValue(
+                                                            'fechaFin',
+                                                            val,
+                                                            {
+                                                                shouldValidate: true,
+                                                            },
+                                                        )
+                                                    }
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button
+                                        type="submit"
+                                        className="w-full bg-[#667eea] hover:bg-[#5568d3] text-white"
+                                        disabled={isCreating}
+                                    >
+                                        {isCreating
+                                            ? 'Creando...'
+                                            : 'Crear Tratamiento'}
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        </form>
                     </div>
 
                     {/* Columna Derecha: Tratamientos Activos */}
